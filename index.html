@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>🌸 孕期记录小工具</title>
+
+<!-- PWA 必备元数据与iOS适配 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8829c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="孕期助手">
+<link rel="apple-touch-icon" href="icon.svg">
+
+<style>
+:root{
+  --primary:#e8829c;
+  --primary-dark:#cf6683;
+  --accent:#8c7ae6;
+  --text:#3d3a3f;
+  --muted:#9a929f;
+  --border:#f1e8ec;
+  --card:#ffffff;
+  --shadow:0 4px 20px rgba(200,150,170,.10);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  background:linear-gradient(180deg,#fdf3f5 0%,#f8f5fc 420px,#faf9fb 100%);
+  color:var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+h1,h2,h3,h4{margin:0;font-weight:700;}
+button{font-family:inherit;cursor:pointer;border:none;outline:none;}
+input,select,textarea{
+  font-family:inherit;font-size:14px;color:var(--text);
+  border:1px solid var(--border);background:#fdfbfc;
+  border-radius:10px;padding:9px 12px;outline:none;transition:.18s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--primary);background:#fff;
+  box-shadow:0 0 0 3px rgba(232,130,156,.13);
+}
+textarea{resize:vertical;line-height:1.6;}
+
+/* ---------- 头部 ---------- */
+.app-header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px 0;
+}
+.app-header h1{font-size:17px;text-align:center;letter-spacing:.5px;margin-bottom:10px;}
+.tabs{
+  display:flex;gap:6px;justify-content:center;
+  max-width:1000px;margin:0 auto;
+  overflow-x:auto;padding-bottom:8px;
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex:none;padding:8px 16px;border-radius:999px;font-size:14px;
+  background:transparent;color:var(--muted);transition:.18s;white-space:nowrap;
+}
+.tab-btn:hover{background:#fbf1f4;color:var(--primary-dark);}
+.tab-btn.active{background:var(--primary);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(232,130,156,.35);}
+
+main{max-width:1000px;margin:0 auto;padding:16px 14px 60px;}
+.tab-pane{display:none;animation:fade .25s ease;}
+.tab-pane.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border-radius:18px;padding:18px;
+  box-shadow:var(--shadow);margin-bottom:14px;
+}
+.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card h3::before{content:'';width:4px;height:15px;border-radius:2px;background:var(--primary);}
+.hint{font-size:12px;color:var(--muted);line-height:1.6;}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0;}
+
+/* ---------- 概览 ---------- */
+.hero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.phase-badge{
+  display:inline-block;font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px;
+  margin-bottom:10px;background:#fdeef3;color:var(--primary-dark);
+}
+.phase-badge.p2{background:#eef7f0;color:#3f8f5c;}
+.phase-badge.p3{background:#f1eefd;color:#6a55cf;}
+.big-week{font-size:38px;font-weight:800;line-height:1.1;color:var(--primary-dark);letter-spacing:-1px;}
+.big-week span{font-size:16px;font-weight:600;color:var(--muted);margin:0 4px 0 1px;}
+.hero-meta{margin-top:8px;font-size:13px;color:var(--muted);}
+.hero-meta b{color:var(--primary-dark);font-size:15px;}
+.ring{
+  --p:0%;
+  width:88px;height:88px;border-radius:50%;position:relative;
+  display:grid;place-items:center;flex:none;
+  background:conic-gradient(var(--primary) 0 var(--p), #f3ecef var(--p) 100%);
+}
+.ring::after{content:'';position:absolute;inset:8px;border-radius:50%;background:#fff;}
+.ring span{position:relative;z-index:1;font-size:16px;font-weight:800;color:var(--primary-dark);}
+.progress{height:8px;background:#f5eef1;border-radius:99px;overflow:hidden;margin:16px 0 8px;}
+.progress>div{height:100%;border-radius:99px;background:linear-gradient(90deg,#f2a3b8,#e8829c);transition:width .5s;}
+.hero-foot{font-size:12px;color:var(--muted);}
+.empty-hero{text-align:center;padding:10px 0;}
+.empty-hero .emoji{font-size:36px;margin-bottom:6px;}
+.empty-hero p{margin:4px 0;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+
+.stat-boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;}
+.stat-box{background:#fcf8fa;border-radius:12px;padding:12px 8px;text-align:center;}
+.stat-box .sv{font-size:17px;font-weight:700;color:var(--primary-dark);}
+.stat-box .sl{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ---------- 表单 ---------- */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+.form-row label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);flex:1;min-width:130px;}
+.form-row label input{width:100%;}
+button.primary{
+  background:var(--primary);color:#fff;padding:10px 20px;border-radius:10px;
+  font-size:14px;font-weight:600;transition:.18s;box-shadow:0 3px 10px rgba(232,130,156,.3);
+}
+button.primary:hover{background:var(--primary-dark);transform:translateY(-1px);}
+button.ghost{
+  background:#fbf6f8;color:var(--primary-dark);padding:9px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;border:1px solid var(--border);transition:.18s;
+}
+button.ghost:hover{background:#f9eef2;}
+button.ghost.danger{color:#d05a5a;}
+button.ghost.danger:hover{background:#fdeeee;}
+.file-btn{position:relative;overflow:hidden;display:inline-block;}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+/* ---------- 数据页 ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#fbf3f6;color:var(--primary-dark);
+  font-size:12.5px;padding:5px 10px;border-radius:999px;
+}
+.chip button{background:none;color:#c98a9d;font-size:12px;line-height:1;padding:0 2px;}
+.chip button:hover{color:#d05a5a;}
+.chip-btn{
+  background:#fbf7f9;color:var(--muted);font-size:13px;padding:6px 14px;
+  border-radius:999px;border:1px solid var(--border);transition:.18s;
+}
+.chip-btn:hover{color:var(--primary-dark);}
+.chip-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+.chart-wrap{position:relative;width:100%;margin-top:6px;}
+canvas{display:block;width:100%;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;margin-top:14px;}
+.stats .stat-box{background:#fbf7f9;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:9px 6px;text-align:left;border-bottom:1px solid var(--border);}
+th{color:var(--muted);font-weight:600;font-size:12px;}
+tr:last-child td{border-bottom:none;}
+td.num{font-weight:700;color:var(--primary-dark);}
+.del-btn{background:none;color:#cbb7bf;font-size:14px;padding:2px 6px;border-radius:6px;transition:.15s;}
+.del-btn:hover{background:#fdeeee;color:#d05a5a;}
+
+/* ---------- 日历 ---------- */
+.cal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.cal-head .title{font-size:16px;font-weight:700;min-width:130px;text-align:center;}
+.cal-nav{
+  width:32px;height:32px;border-radius:9px;background:#fbf3f6;color:var(--primary-dark);
+  font-size:16px;font-weight:700;line-height:1;
+}
+.cal-nav:hover{background:#f6e6ec;}
+.cal-today-btn{margin-left:auto;background:#fbf3f6;color:var(--primary-dark);font-size:12.5px;
+  padding:7px 14px;border-radius:9px;font-weight:600;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-dow{text-align:center;font-size:11.5px;color:var(--muted);padding:4px 0;font-weight:600;}
+.cal-cell{
+  position:relative;min-height:56px;border-radius:11px;background:#fbf8fa;
+  padding:6px 7px;display:flex;flex-direction:column;cursor:pointer;
+  border:2px solid transparent;transition:.15s;
+}
+.cal-cell:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(200,160,180,.18);}
+.cal-cell.empty{background:transparent;cursor:default;pointer-events:none;}
+.cal-cell.p1{background:#fdf0f3;}
+.cal-cell.p2{background:#eef7f0;}
+.cal-cell.p3{background:#f1eefd;}
+.cal-cell.other{opacity:.4;}
+.cal-cell.today{border-color:var(--primary);}
+.cal-cell.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(140,122,230,.15);}
+.cal-cell .dnum{font-size:13px;font-weight:700;color:#57505c;}
+.cal-cell .dwk{font-size:9.5px;color:#a99fae;margin-top:auto;font-weight:600;}
+.cal-cell .dots{position:absolute;right:5px;top:5px;display:flex;gap:3px;}
+.dot{width:6px;height:6px;border-radius:50%;display:block;}
+.dot.mark{background:#e8829c;}
+.dot.checkup{background:#5aa9e6;}
+.cal-legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:12px;flex-wrap:wrap;}
+.cal-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px;}
+
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0 16px;}
+.detail-item{background:#fbf7f9;border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:4px;}
+.detail-item .dl{font-size:11.5px;color:var(--muted);}
+.detail-item .dv{font-size:14px;font-weight:700;color:var(--primary-dark);}
+.mark-editor{display:flex;flex-direction:column;gap:8px;}
+.mark-editor label{font-size:12px;color:var(--muted);}
+.mark-editor .btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ---------- 笔记 ---------- */
+.add-form{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;
+  background:#fcf9fb;border-radius:14px;padding:14px;}
+.add-form .row{display:flex;gap:8px;flex-wrap:wrap;}
+.add-form .row>*{flex:1;min-width:110px;}
+.add-form button{align-self:flex-start;}
+
+.list{display:flex;flex-direction:column;gap:10px;}
+.list-item{
+  background:#fdfbfc;border:1px solid var(--border);border-radius:14px;
+  padding:13px 15px;display:flex;gap:10px;align-items:flex-start;
+}
+.li-body{flex:1;min-width:0;}
+.li-title{font-weight:700;font-size:13.5px;margin-bottom:6px;color:#4b4450;}
+.li-text{font-size:13px;line-height:1.75;color:#6b6371;word-break:break-word;}
+.li-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.li-date{font-size:12px;font-weight:700;color:var(--primary-dark);background:#fdf0f3;
+  padding:2px 9px;border-radius:999px;}
+.li-mood{font-size:13px;}
+
+.bag-progress{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:12.5px;color:var(--muted);}
+.bag-progress .bar{flex:1;height:9px;background:#f3ecef;border-radius:99px;overflow:hidden;}
+.bag-progress .bar>div{height:100%;background:linear-gradient(90deg,#8cd6a8,#5cb87f);transition:width .4s;}
+.bag-group{margin-bottom:16px;}
+.bag-group h4{font-size:13px;color:var(--accent);margin-bottom:8px;}
+.bag-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.bag-item{
+  display:flex;align-items:center;gap:8px;background:#fbf8fa;border-radius:10px;
+  padding:9px 11px;font-size:13px;cursor:pointer;transition:.15s;position:relative;
+}
+.bag-item:hover{background:#f7eef2;}
+.bag-item input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex:none;padding:0;}
+.bag-item span{flex:1;}
+.bag-item.done span{text-decoration:line-through;color:#b9b2bd;}
+.bag-item .del-btn{padding:0 4px;font-size:12px;}
+
+@media(max-width:520px){
+  .big-week{font-size:32px;}
+  .cal-cell{min-height:48px;padding:4px 5px;}
+  .cal-cell .dwk{font-size:8.5px;}
+  .bag-items{grid-template-columns:1fr 1fr;}
+  .app-header h1{font-size:15px;}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>🌸 孕期记录小工具</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="home">概览</button>
+    <button class="tab-btn" data-tab="data">数据记录</button>
+    <button class="tab-btn" data-tab="calendar">孕周日历</button>
+    <button class="tab-btn" data-tab="notes">知识 & 清单</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ================= 概览 ================= -->
+  <section id="tab-home" class="tab-pane active">
+    <div class="card" id="homeStatus"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>数据概览</h3>
+        <div class="stat-boxes" id="homeStats"></div>
+      </div>
+      <div class="card">
+        <h3>最近日记</h3>
+        <div id="homeDiary"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>个人设置</h3>
+      <div class="form-row">
+        <label>末次月经第一天
+          <input type="date" id="inputLmp">
+        </label>
+        <label>月经周期（天）
+          <input type="number" id="inputCycle" min="20" max="45" value="28">
+        </label>
+        <button class="primary" onclick="saveProfile()">保存设置</button>
+      </div>
+      <p class="hint">预产期按「末次月经 + 280 天 + 周期调整」计算，仅供参考，请以医生判断为准。</p>
+      <div class="form-row" style="margin-top:14px;">
+        <button class="ghost" onclick="exportData()">⬇ 导出数据</button>
+        <label class="ghost file-btn">⬆ 导入数据
+          <input type="file" accept=".json,application/json" onchange="importData(this)">
+        </label>
+        <button class="ghost danger" onclick="resetAll()">清空全部数据</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 数据记录 ================= -->
+  <section id="tab-data" class="tab-pane">
+    <div class="card">
+      <h3>添加一条记录</h3>
+      <div class="form-row">
+        <label style="flex:1.2;">指标
+          <select id="metricSelect"></select>
+        </label>
+        <label>日期
+          <input type="date" id="recordDate">
+        </label>
+        <label>数值
+          <input type="number" step="0.1" id="recordValue" placeholder="如 58.5">
+        </label>
+        <label style="flex:1.5;">备注（可选）
+          <input type="text" id="recordNote" placeholder="如：晨起空腹">
+        </label>
+        <button class="primary" onclick="addRecord()">添加</button>
+      </div>
+
+      <div class="chips" id="metricChips"></div>
+
+      <div class="form-row" style="margin-top:6px;">
+        <label>新指标名称
+          <input id="newMetricName" placeholder="如：血压 / 腹围">
+        </label>
+        <label>单位
+          <input id="newMetricUnit" placeholder="如：mmHg / cm">
+        </label>
+        <button class="ghost" onclick="addMetric()">＋ 添加指标</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>趋势图</h3>
+      <div class="chips" id="chartMetricTabs"></div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+      <div class="stats" id="chartStats"></div>
+    </div>
+
+    <div class="card">
+      <h3>全部记录</h3>
+      <div style="overflow-x:auto;">
+        <table id="recordTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 孕周日历 ================= -->
+  <section id="tab-calendar" class="tab-pane">
+    <div class="card">
+      <div class="cal-head">
+        <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+        <div class="title" id="calTitle">—</div>
+        <button class="cal-nav" onclick="changeMonth(1)">›</button>
+        <button class="cal-today-btn" onclick="goToday()">回到今天</button>
+      </div>
+      <div class="cal-legend">
+        <span><i style="background:#fdf0f3;"></i>孕早期</span>
+        <span><i style="background:#eef7f0;"></i>孕中期</span>
+        <span><i style="background:#f1eefd;"></i>孕晚期</span>
+        <span><i class="dot checkup" style="border-radius:50%;width:8px;height:8px;"></i>产检节点</span>
+        <span><i class="dot mark" style="border-radius:50%;width:8px;height:8px;"></i>我的标注</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="card" id="dayDetail"></div>
+  </section>
+
+  <!-- ================= 知识 & 清单 ================= -->
+  <section id="tab-notes" class="tab-pane">
+    <div class="card">
+      <div class="chips" id="noteTabs">
+        <button class="chip-btn active" data-nt="knowledge" onclick="setNoteTab('knowledge')">📖 孕期知识</button>
+        <button class="chip-btn" data-nt="bag" onclick="setNoteTab('bag')">🎒 待产包清单</button>
+        <button class="chip-btn" data-nt="diary" onclick="setNoteTab('diary')">✍️ 孕期日记</button>
+      </div>
+      <div id="noteContent"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ============================================================
+   基础工具
+============================================================ */
+const KEY = 'preg_tracker_v1';
+const DAY = 86400000;
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const pad = n => String(n).padStart(2, '0');
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+// 优化日期解析，固定为当日中午 12点，规避跨时区/夏令时 1 天偏差问题
+const parseD = s => { 
+  const [y,m,d] = s.split('-').map(Number); 
+  return new Date(y, m-1, d, 12, 0, 0); 
+};
+const today = () => { 
+  const d = new Date(); 
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
+};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const numText = v => (Math.round(v*10)/10).toString();
+
+/* 关键产检节点（距末次月经的天数） */
+const CHECKUP_DAYS = [84,112,140,168,196,224,252,259,266,273,280];
+const CHECKUP_MAP = {
+  84:'孕12周左右：NT检查 / 建档',
+  112:'孕16周：唐氏筛查',
+  140:'孕20周：大排畸 B 超',
+  168:'孕24周：糖耐量检查',
+  196:'孕28周：常规产检，之后每 2 周一次',
+  224:'孕32周：常规产检 + 胎心监护',
+  252:'孕36周：胎心监护，之后每周一次',
+  259:'孕37周：足月啦，每周产检',
+  266:'孕38周：每周产检',
+  273:'孕39周：随时可能发动',
+  280:'孕40周：预产期'
+};
+
+/* ============================================================
+   默认数据
+============================================================ */
+const DEFAULT_STATE = {
+  profile: { lmp:'', cycle:28 },
+  metrics: [
+    { id:'m_wt', name:'体重', unit:'kg' },
+    { id:'m_wc', name:'腰围', unit:'cm' },
+    { id:'m_td', name:'胎动', unit:'次/天' }
+  ],
+  records: [],
+  marks: [],
+  notes: {
+    knowledge: [
+      { id:'k1', title:'孕早期（1–13周）注意事项',
+        content:'1. 每天补充叶酸 0.4mg，至少到孕 3 个月。\n2. 避免剧烈运动、提重物，注意休息。\n3. 孕吐明显可少食多餐，避免油腻气味。\n4. 不要自行用药，感冒发烧要及时就医。\n5. 11–13⁺⁶ 周做 NT 检查，记得提前预约建档。' },
+      { id:'k2', title:'孕中期（14–27周）营养建议',
+        content:'1. 每天保证优质蛋白：鸡蛋、鱼、瘦肉、豆制品。\n2. 补钙 1000mg/天（牛奶 500ml + 钙片按需）。\n3. 补铁：红肉、动物肝脏，每周 1–2 次。\n4. 控制精制糖和水果量，预防妊娠糖尿病。\n5. 20–24 周大排畸，24–28 周糖耐，别错过。' },
+      { id:'k3', title:'孕晚期（28周以后）注意',
+        content:'1. 每天数胎动，早中晚各 1 小时，异常及时就医。\n2. 睡姿尽量左侧卧，减轻子宫对血管的压迫。\n3. 注意水肿、血压，警惕妊娠高血压。\n4. 36 周后每周产检，准备好待产包。\n5. 出现规律宫缩、见红、破水，立即去医院。' },
+      { id:'k4', title:'如何正确数胎动',
+        content:'方法：每天早、中、晚固定时间各数 1 小时，3 次相加 × 4 = 12 小时胎动数。\n正常：12 小时 ≥ 30 次；\n偏少：12 小时 < 20 次需引起注意；\n危险：12 小时 < 10 次，或胎动突然明显减少 / 剧烈增多，请立刻就医。\n建议每次数完就把结果记录到「数据记录」里，方便观察趋势。' },
+      { id:'k5', title:'临产的三大信号',
+        content:'1. 见红：少量血性分泌物，通常 24–48 小时内临产。\n2. 破水：阴道流出清亮液体，无法控制，需平躺立即送医。\n3. 规律宫缩：初产妇约 5 分钟一次、每次持续 30 秒以上，就该去医院了。\n⚠️ 破水后不要洗澡、不要走动过多，直接去医院。' },
+      { id:'k6', title:'孕期体重增长参考',
+        content:'按孕前 BMI 分类（单胎）：\n• 偏瘦（BMI<18.5）：建议增长 12.5–18 kg\n• 正常（18.5–24.9）：建议增长 11.5–16 kg\n• 超重（25–29.9）：建议增长 7–11.5 kg\n• 肥胖（≥30）：建议增长 5–9 kg\n孕早期增长 0–2kg，中晚期每周约 0.3–0.5kg 较合适。' }
+    ],
+    bag: [
+      { id:'b01', group:'证件资料', text:'身份证', done:false },
+      { id:'b02', group:'证件资料', text:'产检手册 / 病历本', done:false },
+      { id:'b03', group:'证件资料', text:'医保卡', done:false },
+      { id:'b04', group:'证件资料', text:'银行卡及少量现金', done:false },
+      { id:'b05', group:'证件资料', text:'结婚证 / 准生证（按需）', done:false },
+
+      { id:'b11', group:'妈妈用品', text:'月子服 / 哺乳睡衣', done:false },
+      { id:'b12', group:'妈妈用品', text:'哺乳内衣', done:false },
+      { id:'b13', group:'妈妈用品', text:'防溢乳垫', done:false },
+      { id:'b14', group:'妈妈用品', text:'产妇卫生巾', done:false },
+      { id:'b15', group:'妈妈用品', text:'产褥垫', done:false },
+      { id:'b16', group:'妈妈用品', text:'一次性内裤', done:false },
+      { id:'b17', group:'妈妈用品', text:'吸管杯（躺着喝水）', done:false },
+      { id:'b18', group:'妈妈用品', text:'洗漱用品 / 毛巾', done:false },
+      { id:'b19', group:'妈妈用品', text:'拖鞋 + 袜子', done:false },
+      { id:'b20', group:'妈妈用品', text:'吸奶器', done:false },
+      { id:'b21', group:'妈妈用品', text:'束腹带', done:false },
+
+      { id:'b31', group:'宝宝用品', text:'纸尿裤 NB 码', done:false },
+      { id:'b32', group:'宝宝用品', text:'和尚服 / 连体衣', done:false },
+      { id:'b33', group:'宝宝用品', text:'包被', done:false },
+      { id:'b34', group:'宝宝用品', text:'口水巾 / 小方巾', done:false },
+      { id:'b35', group:'宝宝用品', text:'婴儿湿巾', done:false },
+      { id:'b36', group:'宝宝用品', text:'护臀膏', done:false },
+      { id:'b37', group:'宝宝用品', text:'奶瓶 + 奶粉（备用）', done:false },
+      { id:'b38', group:'宝宝用品', text:'浴巾', done:false },
+      { id:'b39', group:'宝宝用品', text:'帽子 + 小袜子', done:false },
+
+      { id:'b51', group:'其他', text:'手机充电器 / 充电宝', done:false },
+      { id:'b52', group:'其他', text:'零食和饮料', done:false },
+      { id:'b53', group:'其他', text:'出院时穿的衣服', done:false },
+      { id:'b54', group:'其他', text:'塑料袋 / 收纳袋', done:false }
+    ],
+    diary: []
+  }
+};
+
+/* ============================================================
+   状态管理
+============================================================ */
+let state = loadState();
+
+function loadState(){
+  const base = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const s = JSON.parse(raw);
+      if(s.profile) Object.assign(base.profile, s.profile);
+      if(Array.isArray(s.metrics) && s.metrics.length) base.metrics = s.metrics;
+      if(Array.isArray(s.records)) base.records = s.records;
+      if(Array.isArray(s.marks))   base.marks   = s.marks;
+      if(s.notes){
+        ['knowledge','bag','diary'].forEach(k=>{
+          if(Array.isArray(s.notes[k])) base.notes[k] = s.notes[k];
+        });
+      }
+    }
+  }catch(e){ console.warn('读取本地数据失败', e); }
+  return base;
+}
+function saveState(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ alert('本地存储失败，可能是浏览器空间已满'); }
+}
+
+/* ============================================================
+   孕周计算
+============================================================ */
+function eddDate(){
+  if(!state.profile.lmp) return null;
+  const lmp = parseD(state.profile.lmp);
+  const adjust = 280 + ((Number(state.profile.cycle) || 28) - 28);
+  return new Date(lmp.getTime() + adjust * DAY);
+}
+function gest(dateStr){
+  if(!state.profile.lmp || !dateStr) return null;
+  const lmp = parseD(state.profile.lmp);
+  const d = parseD(dateStr);
+  const days = Math.round((d - lmp) / DAY);
+  const weeks = Math.floor(days / 7);
+  return { days, weeks, rem: days - weeks * 7 };
+}
+function checkupTip(days){
+  if(CHECKUP_MAP[days]) return CHECKUP_MAP[days];
+  for(const k of Object.keys(CHECKUP_MAP)){
+    if(Math.abs(days - Number(k)) <= 2) return '临近：' + CHECKUP_MAP[k];
+  }
+  return '暂无特殊安排';
+}
+
+/* ============================================================
+   标签切换
+============================================================ */
+function showTab(name){
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if(name === 'home')     renderHome();
+  if(name === 'data')     { renderData(); setTimeout(drawCurrentChart, 50); }
+  if(name === 'calendar') renderCalendar();
+  if(name === 'notes')    renderNotes();
+}
+$$('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ============================================================
+   概览
+============================================================ */
+function renderHome(){
+  const box = $('#homeStatus');
+
+  if(!state.profile.lmp){
+    box.innerHTML = `
+      <div class="empty-hero">
+        <div class="emoji">🌸</div>
+        <p style="font-weight:700;">还没有设置末次月经日期</p>
+        <p class="hint">在下方「个人设置」中填写后，即可自动计算孕周、预产期，并生成孕周日历。</p>
+      </div>`;
+  } else {
+    const t = today();
+    const g = gest(fmt(t));
+    const edd = eddDate();
+    const total = 280 + ((Number(state.profile.cycle) || 28) - 28);
+    const left = Math.round((edd - t) / DAY);
+    const pct = Math.max(0, Math.min(100, g.days / total * 100));
+    const isBefore = g.days < 0;
+    let phase = '备孕期', phaseCls = '';
+    if(!isBefore){
+      if(g.days < 98){ phase = '孕早期'; phaseCls = 'p1'; }
+      else if(g.days < 196){ phase = '孕中期'; phaseCls = 'p2'; }
+      else { phase = '孕晚期'; phaseCls = 'p3'; }
+    }
+    box.innerHTML = `
+      <div class="hero">
+        <div class="hero-left">
+          <div class="phase-badge ${phaseCls}">${phase}</div>
+          <div class="big-week">
+            ${isBefore ? '—' : g.weeks}<span>周</span>${isBefore ? '' : g.rem}<span>${isBefore ? '' : '天'}</span>
+          </div>
+          <div class="hero-meta">
+            预产期：<b>${fmt(edd)}</b> · ${left > 0 ? `还有 <b>${left}</b> 天` : `已过预产期 ${-left} 天`}
+          </div>
+        </div>
+        <div class="ring" style="--p:${pct}%"><span>${Math.round(pct)}%</span></div>
+      </div>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+      <div class="hero-foot">
+        末次月经 ${state.profile.lmp} · 已孕 ${Math.max(0, g.days)} 天 / 全程约 ${total} 天
+      </div>`;
+  }
+
+  /* 数据概览 */
+  const boxes = state.metrics.map(m => {
+    const pts = getPoints(m.id);
+    const last = pts[pts.length - 1];
+    return `<div class="stat-box">
+      <div class="sv">${last ? numText(last.v) : '—'}</div>
+      <div class="sl">最新${esc(m.name)}${last ? '（' + esc(m.unit) + '）' : ''}</div>
+    </div>`;
+  });
+  const wtPts = getPoints('m_wt');
+  if(wtPts.length >= 2){
+    const diff = wtPts[wtPts.length-1].v - wtPts[0].v;
+    boxes.push(`<div class="stat-box">
+      <div class="sv">${diff >= 0 ? '+' : ''}${numText(diff)}</div>
+      <div class="sl">体重总变化（kg）</div>
+    </div>`);
+  }
+  boxes.push(`<div class="stat-box">
+    <div class="sv">${state.records.length}</div>
+    <div class="sl">记录总条数</div>
+  </div>`);
+  $('#homeStats').innerHTML = boxes.join('') || '<p class="empty">暂无数据</p>';
+
+  /* 最近日记 */
+  const ds = [...state.notes.diary].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,3);
+  $('#homeDiary').innerHTML = ds.length
+    ? ds.map(d => `<div style="margin-bottom:10px;">
+        <div class="li-date" style="display:inline-block;">${d.date}</div>
+        <span style="font-size:13px;margin-left:6px;">${d.mood || ''}</span>
+        <div class="li-text" style="margin-top:5px;">${esc(d.content).replace(/\n/g,'<br>')}</div>
+      </div>`).join('')
+    : '<p class="empty">还没有日记，去「知识 & 清单」写一篇吧～</p>';
+}
+
+/* 设置 */
+function saveProfile(){
+  const lmp = $('#inputLmp').value;
+  const cycle = Number($('#inputCycle').value) || 28;
+  if(!lmp){ alert('请选择末次月经第一天'); return; }
+  state.profile.lmp = lmp;
+  state.profile.cycle = Math.min(45, Math.max(20, cycle));
+  saveState();
+  renderHome(); renderCalendar();
+  alert('已保存，孕周与预产期已更新 ✅');
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `孕期记录_${fmt(today())}.json`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+function importData(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const s = JSON.parse(r.result);
+      if(!s || typeof s !== 'object') throw new Error('格式错误');
+      if(!confirm('导入将覆盖当前所有数据，确定继续吗？')) return;
+      localStorage.setItem(KEY, JSON.stringify(s));
+      state = loadState();
+      curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+      renderAll();
+      alert('导入成功 ✅');
+    }catch(e){
+      alert('文件格式不正确，导入失败');
+    }
+  };
+  r.readAsText(f);
+  input.value = '';
+}
+function resetAll(){
+  if(!confirm('确定要清空全部数据吗？此操作不可恢复！')) return;
+  if(!confirm('再次确认：所有记录、日记、标注都会被删除。')) return;
+  localStorage.removeItem(KEY);
+  state = loadState();
+  curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+  renderAll();
+}
+
+/* ============================================================
+   数据记录页
+============================================================ */
+let curChartMetric = null;
+
+function getPoints(metricId){
+  return state.records
+    .filter(r => r.metricId === metricId)
+    .map(r => ({ d: parseD(r.date), v: Number(r.value), note: r.note }))
+    .sort((a,b) => a.d - b.d);
+}
+
+function renderData(){
+  /* 下拉框 */
+  const sel = $('#metricSelect');
+  const prev = sel.value;
+  sel.innerHTML = state.metrics.map(m =>
+    `<option value="${m.id}">${esc(m.name)}（${esc(m.unit)}）</option>`).join('');
+  if(prev && state.metrics.some(m => m.id === prev)) sel.value = prev;
+  else if(curChartMetric) sel.value = curChartMetric;
+
+  /* 指标 chips */
+  $('#metricChips').innerHTML = state.metrics.length
+    ? state.metrics.map(m => `<span class="chip">${esc(m.name)} · ${esc(m.unit)}
+        <button onclick="delMetric('${m.id}')" title="删除指标">✕</button></span>`).join('')
+    : '<span class="hint">还没有指标，先添加一个吧</span>';
+
+  /* 图表切换 */
+  if(!curChartMetric || !state.metrics.some(m => m.id === curChartMetric)){
+    curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+  }
+  $('#chartMetricTabs').innerHTML = state.metrics.map(m =>
+    `<button class="chip-btn ${m.id === curChartMetric ? 'active' : ''}"
+       onclick="setChartMetric('${m.id}')">${esc(m.name)}</button>`).join('');
+
+  drawCurrentChart();
+  renderRecordTable();
+}
+
+function setChartMetric(id){ curChartMetric = id; renderData(); }
+
+function drawCurrentChart(){
+  const canvas = $('#chart');
+  const metric = state.metrics.find(m => m.id === curChartMetric);
+  const pts = metric ? getPoints(metric.id) : [];
+  drawChart(canvas, pts);
+
+  /* 统计 */
+  const st = $('#chartStats');
+  if(!metric || pts.length === 0){
+    st.innerHTML = '<p class="empty" style="grid-column:1/-1;">暂无数据</p>';
+    return;
+  }
+  const vals = pts.map(p => p.v);
+  const sum = vals.reduce((a,b)=>a+b, 0);
+  const last = vals[vals.length-1];
+  const first = vals[0];
+  st.innerHTML = `
+    <div class="stat-box"><div class="sv">${pts.length}</div><div class="sl">记录次数</div></div>
+    <div class="stat-box"><div class="sv">${numText(last)}</div><div class="sl">最新值</div></div>
+    <div class="stat-box"><div class="sv">${numText(Math.max(...vals))}</div><div class="sl">最大值</div></div>
+    <div class="stat-box"><div class="sv">${numText(Math.min(...vals))}</div><div class="sl">最小值</div></div>
+    <div class="stat-box"><div class="sv">${numText(sum / vals.length)}</div><div class="sl">平均值</div></div>
+    <div class="stat-box"><div class="sv">${last - first >= 0 ? '+' : ''}${numText(last - first)}</div><div class="sl">首末变化</div></div>`;
+}
+
+function drawChart(canvas, pts){
+  if(!canvas) return;
+  const W = canvas.clientWidth;
+  if(!W) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const H = 280;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 48, padR = 18, padT = 18, padB = 34;
+  const pw = W - padL - padR;
+  const ph = H - padT - padB;
+
+  if(pts.length === 0){
+    ctx.fillStyle = '#c0b8c4';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('暂无数据，先添加一条记录吧 📝', W/2, H/2);
+    return;
+  }
+
+  let tMin = pts[0].d.getTime(), tMax = pts[pts.length-1].d.getTime();
+  if(tMin === tMax){ tMin -= DAY * 2; tMax += DAY * 2; }
+
+  let vMin = Math.min(...pts.map(p => p.v));
+  let vMax = Math.max(...pts.map(p => p.v));
+  if(vMin === vMax){ vMin -= 1; vMax += 1; }
+  const padV = (vMax - vMin) * 0.18;
+  vMin -= padV; vMax += padV;
+
+  const X = t => padL + (t - tMin) / (tMax - tMin) * pw;
+  const Y = v => padT + (1 - (v - vMin) / (vMax - vMin)) * ph;
+
+  /* 网格 + Y 轴刻度 */
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for(let i = 0; i <= 4; i++){
+    const v = vMin + (vMax - vMin) * i / 4;
+    const y = Y(v);
+    ctx.strokeStyle = '#f4eef1';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillStyle = '#a89fae';
+    ctx.fillText(numText(v), padL - 8, y);
+  }
+
+  /* X 轴标签 */
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#a89fae';
+  const labelCount = Math.min(6, Math.max(2, pts.length));
+  for(let i = 0; i < labelCount; i++){
+    const t = tMin + (tMax - tMin) * i / (labelCount - 1);
+    const d = new Date(t);
+    ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, X(t), H - padB + 10);
+  }
+
+  /* 面积填充 */
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ph);
+  grad.addColorStop(0, 'rgba(232,130,156,.22)');
+  grad.addColorStop(1, 'rgba(232,130,156,0)');
+  ctx.beginPath();
+  ctx.moveTo(X(pts[0].d.getTime()), padT + ph);
+  pts.forEach(p => ctx.lineTo(X(p.d.getTime()), Y(p.v)));
+  ctx.lineTo(X(pts[pts.length-1].d.getTime()), padT + ph);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* 折线 */
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    const x = X(p.d.getTime()), y = Y(p.v);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = '#e8829c';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  /* 数据点 */
+  pts.forEach(p => {
+    const x = X(p.d.getTime()), y = Y(p.v);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = '#e8829c';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+function renderRecordTable(){
+  const tb = $('#recordTable');
+  const list = [...state.records].sort((a,b) =>
+    b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  if(list.length === 0){
+    tb.innerHTML = '<tr><td class="empty">还没有任何记录</td></tr>';
+    return;
+  }
+  tb.innerHTML = `
+    <thead><tr><th>日期</th><th>指标</th><th>数值</th><th>备注</th><th></th></tr></thead>
+    <tbody>${list.map(r => {
+      const m = state.metrics.find(x => x.id === r.metricId);
+      return `<tr>
+        <td>${r.date}</td>
+        <td>${m ? esc(m.name) : '（已删除指标）'}</td>
+        <td class="num">${numText(r.value)} ${m ? esc(m.unit) : ''}</td>
+        <td style="color:#9a929f;">${esc(r.note || '')}</td>
+        <td style="text-align:right;">
+          <button class="del-btn" onclick="delRecord('${r.id}')">✕</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+
+function addRecord(){
+  const metricId = $('#metricSelect').value;
+  const date = $('#recordDate').value;
+  const raw = $('#recordValue').value;
+  const note = $('#recordNote').value.trim();
+
+  if(!metricId){ alert('请先添加一个指标'); return; }
+  if(!date){ alert('请选择日期'); return; }
+  if(raw === '' || isNaN(Number(raw))){ alert('请输入有效的数值'); return; }
+
+  state.records.push({ id: uid(), metricId, date, value: Number(raw), note });
+  saveState();
+
+  $('#recordValue').value = '';
+  $('#recordNote').value = '';
+
+  curChartMetric = metricId;
+  renderData();
+  renderHome();
+}
+
+function delRecord(id){
+  const r = state.records.find(x => x.id === id);
+  if(!r) return;
+  if(!confirm(`确定删除 ${r.date} 的这条记录吗？`)) return;
+  state.records = state.records.filter(x => x.id !== id);
+  saveState();
+  renderData(); renderHome();
+}
+
+function addMetric(){
+  const name = $('#newMetricName').value.trim();
+  const unit = $('#newMetricUnit').value.trim();
+  if(!name){ alert('请输入指标名称'); return; }
+  if(state.metrics.some(m => m.name === name)){ alert('该指标已存在'); return; }
+  const m = { id: 'm_' + uid(), name, unit: unit || '' };
+  state.metrics.push(m);
+  saveState();
+  $('#newMetricName').value = '';
+  $('#newMetricUnit').value = '';
+  curChartMetric = m.id;
+  renderData(); renderHome();
+}
+
+function delMetric(id){
+  const m = state.metrics.find(x => x.id === id);
+  if(!m) return;
+  const cnt = state.records.filter(r => r.metricId === id).length;
+  if(!confirm(`删除指标「${m.name}」将同时删除它的 ${cnt} 条记录，确定吗？`)) return;
+  state.metrics = state.metrics.filter(x => x.id !== id);
+  state.records = state.records.filter(r => r.metricId !== id);
+  saveState();
+  if(curChartMetric === id) curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+  renderData(); renderHome();
+}
+
+/* ============================================================
+   孕周日历
+============================================================ */
+let calY = null, calM = null, selectedDate = fmt(today());
+
+function changeMonth(delta){
+  calM += delta;
+  if(calM < 0){ calM = 11; calY--; }
+  if(calM > 11){ calM = 0; calY++; }
+  renderCalendar();
+}
+function goToday(){
+  const t = today();
+  calY = t.getFullYear(); calM = t.getMonth();
+  selectedDate = fmt(t);
+  renderCalendar();
+}
+function selectDate(ds){
+  selectedDate = ds;
+  renderCalendar();
+}
+
+function renderCalendar(){
+  if(calY === null){ const t = today(); calY = t.getFullYear(); calM = t.getMonth(); }
+
+  $('#calTitle').textContent = `${calY}年${calM + 1}月`;
+
+  const first = new Date(calY, calM, 1);
+  const startOffset = (first.getDay() + 6) % 7;   // 周一为一周之始
+  const daysInMonth = new Date(calY, calM + 1, 0).getDate();
+  const todayStr = fmt(today());
+
+  let html = ['一','二','三','四','五','六','日']
+    .map(d => `<div class="cal-dow">${d}</div>`).join('');
+  for(let i = 0; i < startOffset; i++) html += `<div class="cal-cell empty"></div>`;
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const ds = `${calY}-${pad(calM + 1)}-${pad(d)}`;
+    const g = gest(ds);
+    let cls = 'cal-cell';
+    let sub = '';
+    const dots = [];
+
+    if(g && g.days >= 0){
+      sub = `${g.weeks}+${g.rem}`;
+      if(g.days < 98) cls += ' p1';
+      else if(g.days < 196) cls += ' p2';
+      else cls += ' p3';
+      if(CHECKUP_DAYS.includes(g.days)) dots.push('<i class="dot checkup"></i>');
+    }
+    if(state.marks.some(m => m.date === ds)) dots.push('<i class="dot mark"></i>');
+    if(ds === todayStr) cls += ' today';
+    if(ds === selectedDate) cls += ' selected';
+
+    html += `<div class="${cls}" onclick="selectDate('${ds}')">
+      <span class="dnum">${d}</span>
+      <span class="dwk">${sub}</span>
+      ${dots.length ? `<span class="dots">${dots.join('')}</span>` : ''}
+    </div>`;
+  }
+
+  $('#calGrid').innerHTML = html;
+  renderDayDetail();
+}
+
+function renderDayDetail(){
+  const el = $('#dayDetail');
+  const ds = selectedDate;
+  const dt = parseD(ds);
+  const wk = ['日','一','二','三','四','五','六'][dt.getDay()];
+  const mark = state.marks.find(m => m.date === ds);
+
+  let html = `<h3>${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日 星期${wk}</h3>`;
+
+  const g = gest(ds);
+  if(!g){
+    html += `<p class="empty">请先在「概览」页设置末次月经日期，即可自动显示每天的孕周。</p>`;
+  } else if(g.days < 0){
+    html += `<p class="empty">距离末次月经还有 ${-g.days} 天</p>`;
+  } else {
+    const edd = eddDate();
+    const left = Math.round((edd - dt) / DAY);
+    let phase = '孕早期';
+    if(g.days >= 196) phase = '孕晚期';
+    else if(g.days >= 98) phase = '孕中期';
+
+    html += `<div class="detail-grid">
+      <div class="detail-item"><span class="dl">孕周</span><span class="dv">${g.weeks} 周 ${g.rem} 天</span></div>
+      <div class="detail-item"><span class="dl">阶段</span><span class="dv">${phase}</span></div>
+      <div class="detail-item"><span class="dl">距离预产期</span>
+        <span class="dv">${left > 0 ? left + ' 天' : '已过 ' + (-left) + ' 天'}</span></div>
+      <div class="detail-item"><span class="dl">产检提醒</span><span class="dv" style="font-size:12.5px;line-height:1.5;">${checkupTip(g.days)}</span></div>
+    </div>`;
+  }
+
+  html += `<div class="mark-editor">
+    <label>当日标注（如：产检、B超、胎动明显、心情不错…）</label>
+    <textarea id="markText" rows="2" placeholder="写点什么…">${mark ? esc(mark.text) : ''}</textarea>
+    <div class="btns">
+      <button class="primary" onclick="saveMark()">保存标注</button>
+      ${mark ? '<button class="ghost danger" onclick="delMark()">删除标注</button>' : ''}
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function saveMark(){
+  const ta = $('#markText');
+  if(!ta) return;
+  const text = ta.value.trim();
+  const i = state.marks.findIndex(m => m.date === selectedDate);
+  if(!text){
+    if(i >= 0) state.marks.splice(i, 1);
+  } else if(i >= 0){
+    state.marks[i].text = text;
+  } else {
+    state.marks.push({ date: selectedDate, text });
+  }
+  saveState();
+  renderCalendar();
+}
+function delMark(){
+  state.marks = state.marks.filter(m => m.date !== selectedDate);
+  saveState();
+  renderCalendar();
+  renderDayDetail(); // 修复Bug：同时刷洗详情区
+}
+
+/* ============================================================
+   知识 & 清单 & 日记
+============================================================ */
+let curNoteTab = 'knowledge';
+
+function setNoteTab(t){
+  curNoteTab = t;
+  $$('#noteTabs .chip-btn').forEach(b => b.classList.toggle('active', b.dataset.nt === t));
+  renderNotes();
+}
+
+function renderNotes(){
+  const box = $('#noteContent');
+  if(curNoteTab === 'knowledge')      box.innerHTML = renderKnowledge();
+  else if(curNoteTab === 'bag')       box.innerHTML = renderBag();
+  else                                box.innerHTML = renderDiary();
+}
+
+/* ---------- 孕期知识 ---------- */
+function renderKnowledge(){
+  const items = state.notes.knowledge;
+  return `
+    <div class="add-form">
+      <div class="row">
+        <input id="kTitle" placeholder="标题，如：孕中期营养">
+      </div>
+      <textarea id="kContent" rows="3" placeholder="写点有用的知识…"></textarea>
+      <button class="primary" onclick="addKnowledge()">＋ 添加知识</button>
+    </div>
+    <div class="list">
+      ${items.length ? items.map(it => `
+        <div class="list-item">
+          <div class="li-body">
+            <div class="li-title">📖 ${esc(it.title)}</div>
+            <div class="li-text">${esc(it.content).replace(/\n/g,'<br>')}</div>
+          </div>
+          <button class="del-btn" onclick="delKnowledge('${it.id}')">✕</button>
+        </div>`).join('')
+      : '<p class="empty">暂无知识条目</p>'}
+    </div>`;
+}
+function addKnowledge(){
+  const title = $('#kTitle').value.trim();
+  const content = $('#kContent').value.trim();
+  if(!title && !content){ alert('请至少填写标题或内容'); return; }
+  state.notes.knowledge.unshift({ id: uid(), title: title || '未命名', content });
+  saveState();
+  renderNotes();
+}
+function delKnowledge(id){
+  if(!confirm('确定删除这条知识吗？')) return;
+  state.notes.knowledge = state.notes.knowledge.filter(k => k.id !== id);
+  saveState();
+  renderNotes();
+}
+
+/* ---------- 待产包 ---------- */
+function renderBag(){
+  const items = state.notes.bag;
+  const total = items.length;
+  const done = items.filter(i => i.done).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+
+  const groups = {};
+  items.forEach(it => { (groups[it.group] = groups[it.group] || []).push(it); });
+
+  let html = `
+    <div class="bag-progress">
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <span>已准备 ${done} / ${total} 项（${pct}%）</span>
+    </div>
+    <div class="add-form">
+      <div class="row">
+        <input id="bagGroup" placeholder="分类，如：妈妈用品" value="妈妈用品">
+        <input id="bagText" placeholder="物品名称，如：拖鞋">
+      </div>
+      <button class="primary" onclick="addBagItem()">＋ 添加物品</button>
+    </div>`;
+
+  Object.keys(groups).forEach(g => {
+    html += `<div class="bag-group"><h4>🎒 ${esc(g)}</h4><div class="bag-items">`;
+    groups[g].forEach(it => {
+      html += `<label class="bag-item ${it.done ? 'done' : ''}">
+        <input type="checkbox" ${it.done ? 'checked' : ''} onchange="toggleBag('${it.id}')">
+        <span>${esc(it.text)}</span>
+        <button class="del-btn" onclick="delBag(event,'${it.id}')">✕</button>
+      </label>`;
+    });
+    html += `</div></div>`;
+  });
+
+  return html;
+}
+function toggleBag(id){
+  const it = state.notes.bag.find(x => x.id === id);
+  if(!it) return;
+  it.done = !it.done;
+  saveState();
+  renderNotes();
+}
+function delBag(e, id){
+  e.preventDefault(); e.stopPropagation();
+  state.notes.bag = state.notes.bag.filter(x => x.id !== id);
+  saveState();
+  renderNotes();
+}
+function addBagItem(){
+  const group = $('#bagGroup').value.trim() || '其他';
+  const text = $('#bagText').value.trim();
+  if(!text){ alert('请输入物品名称'); return; }
+  state.notes.bag.push({ id: uid(), group, text, done:false });
+  saveState();
+  renderNotes();
+}
+
+/* ---------- 孕期日记 ---------- */
+function renderDiary(){
+  const moods = ['😊 开心','🥰 幸福','😴 疲惫','🤢 不适','😟 担心','😤 烦躁','🤔 平静'];
+  const items = [...state.notes.diary].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  return `
+    <div class="add-form">
+      <div class="row">
+        <input type="date" id="diaryDate" value="${fmt(today())}">
+        <select id="diaryMood">
+          ${moods.map(m => `<option>${m}</option>`).join('')}
+        </select>
+      </div>
+      <textarea id="diaryContent" rows="3" placeholder="今天宝宝怎么样？记录一下吧…"></textarea>
+      <button class="primary" onclick="addDiary()">✍️ 写日记</button>
+    </div>
+    <div class="list">
+      ${items.length ? items.map(it => `
+        <div class="list-item">
+          <div class="li-body">
+            <div class="li-head">
+              <span class="li-date">${it.date}</span>
+              <span class="li-mood">${esc(it.mood || '')}</span>
+            </div>
+            <div class="li-text">${esc(it.content).replace(/\n/g,'<br>')}</div>
+          </div>
+          <button class="del-btn" onclick="delDiary('${it.id}')">✕</button>
+        </div>`).join('')
+      : '<p class="empty">还没有日记，记录一下今天的心情吧～</p>'}
+    </div>`;
+}
+function addDiary(){
+  const date = $('#diaryDate').value || fmt(today());
+  const mood = $('#diaryMood').value;
+  const content = $('#diaryContent').value.trim();
+  if(!content){ alert('写点什么再保存吧～'); return; }
+  state.notes.diary.unshift({ id: uid(), date, mood, content });
+  saveState();
+  renderNotes();
+  renderHome();
+}
+function delDiary(id){
+  if(!confirm('确定删除这篇日记吗？')) return;
+  state.notes.diary = state.notes.diary.filter(d => d.id !== id);
+  saveState();
+  renderNotes();
+  renderHome();
+}
+
+/* ============================================================
+   初始化与 SW 自动更新注册
+============================================================ */
+function renderAll(){
+  renderHome();
+  renderData();
+  renderCalendar();
+  renderNotes();
+}
+
+function init(){
+  const t = today();
+  calY = t.getFullYear();
+  calM = t.getMonth();
+  selectedDate = fmt(t);
+  curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+
+  $('#recordDate').value = fmt(t);
+  $('#inputLmp').value = state.profile.lmp || '';
+  $('#inputCycle').value = state.profile.cycle || 28;
+
+  renderAll();
+
+  /* 窗口尺寸变化时重绘图表 */
+  let rt;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => {
+      if($('#tab-data').classList.contains('active')) drawCurrentChart();
+    }, 180);
+  });
+
+  /* 注册 Service Worker，实现应用全自动更新 */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // 发现新版本时发送激活指令并静默刷新
+              newWorker.postMessage({ action: 'skipWaiting' });
+            }
+          });
+        });
+      });
+
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>

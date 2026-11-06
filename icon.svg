@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf3f5" />
+      <stop offset="50%" stop-color="#f8e5ec" />
+      <stop offset="100%" stop-color="#f1cef7" />
+    </linearGradient>
+    <linearGradient id="flower" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f2a3b8" />
+      <stop offset="100%" stop-color="#e8829c" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#cf6683" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+
+  <g filter="url(#shadow)" transform="translate(256, 256)">
+    <path d="M 0,-120 C 50,-180 120,-110 0,0 C -120,-110 -50,-180 0,-120 Z" fill="url(#flower)" opacity="0.9" />
+    <path d="M 0,-120 C 50,-180 120,-110 0,0 C -120,-110 -50,-180 0,-120 Z" fill="url(#flower)" opacity="0.9" transform="rotate(72)" />
+    <path d="M 0,-120 C 50,-180 120,-110 0,0 C -120,-110 -50,-180 0,-120 Z" fill="url(#flower)" opacity="0.9" transform="rotate(144)" />
+    <path d="M 0,-120 C 50,-180 120,-110 0,0 C -120,-110 -50,-180 0,-120 Z" fill="url(#flower)" opacity="0.9" transform="rotate(216)" />
+    <path d="M 0,-120 C 50,-180 120,-110 0,0 C -120,-110 -50,-180 0,-120 Z" fill="url(#flower)" opacity="0.9" transform="rotate(288)" />
+
+    <circle cx="0" cy="0" r="42" fill="#ffffff" />
+    <path d="M 0,-10 C -12,-25 -32,-10 0,18 C 32,-10 12,-25 0,-10 Z" fill="#cf6683" />
+  </g>
+</svg>
