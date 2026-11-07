@@ -113,6 +113,17 @@ main{max-width:1000px;margin:0 auto;padding:16px 14px 60px;}
 .empty-hero .emoji{font-size:36px;margin-bottom:6px;}
 .empty-hero p{margin:4px 0;}
 
+/* 宝宝发育卡片 (功能二) */
+.size-card{
+  display:flex;align-items:center;gap:14px;
+  background:linear-gradient(135deg,#fef6f8 0%,#f4effc 100%);
+  border-radius:14px;padding:14px 16px;margin-bottom:14px;
+}
+.size-icon{font-size:36px;flex:none;background:#fff;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;box-shadow:0 3px 10px rgba(200,150,170,.15);}
+.size-body{flex:1;min-width:0;}
+.size-title{font-size:14px;font-weight:700;color:var(--primary-dark);margin-bottom:3px;}
+.size-desc{font-size:12.5px;color:#6b6371;line-height:1.5;}
+
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
 
@@ -211,7 +222,7 @@ td.num{font-weight:700;color:var(--primary-dark);}
 .mark-editor label{font-size:12px;color:var(--muted);}
 .mark-editor .btns{display:flex;gap:8px;flex-wrap:wrap;}
 
-/* ---------- 笔记 ---------- */
+/* ---------- 笔记与计时器 ---------- */
 .add-form{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;
   background:#fcf9fb;border-radius:14px;padding:14px;}
 .add-form .row{display:flex;gap:8px;flex-wrap:wrap;}
@@ -231,8 +242,21 @@ td.num{font-weight:700;color:var(--primary-dark);}
   padding:2px 9px;border-radius:999px;}
 .li-mood{font-size:13px;}
 
+/* 宫缩计时器样式 (功能三) */
+.contraction-box{text-align:center;padding:20px 10px;background:#fcf8fa;border-radius:16px;margin-bottom:16px;}
+.big-timer-btn{
+  width:130px;height:130px;border-radius:50%;background:var(--primary);color:#fff;
+  font-size:15px;font-weight:700;box-shadow:0 6px 20px rgba(232,130,156,.35);
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  transition:.2s;cursor:pointer;margin:10px 0;
+}
+.big-timer-btn:active{transform:scale(0.95);}
+.big-timer-btn.active{background:#d05a5a;box-shadow:0 6px 20px rgba(208,90,90,.4);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.04);}100%{transform:scale(1);}}
+.timer-display{font-size:26px;font-weight:800;color:var(--primary-dark);margin:6px 0;}
+
 .bag-progress{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:12.5px;color:var(--muted);}
-.bag-progress .bar{flex:1;height:9px;background:#f3ecef;border-radius:99px;overflow:hidden;}
+.bag-progress .bar{flex:1;height:9px;background:#f3ecef;border-radius:9px;overflow:hidden;}
 .bag-progress .bar>div{height:100%;background:linear-gradient(90deg,#8cd6a8,#5cb87f);transition:width .4s;}
 .bag-group{margin-bottom:16px;}
 .bag-group h4{font-size:13px;color:var(--accent);margin-bottom:8px;}
@@ -273,6 +297,9 @@ td.num{font-weight:700;color:var(--primary-dark);}
   <!-- ================= 概览 ================= -->
   <section id="tab-home" class="tab-pane active">
     <div class="card" id="homeStatus"></div>
+
+    <!-- 本周宝宝发育卡片 (功能二) -->
+    <div id="homeSizeCard"></div>
 
     <div class="grid2">
       <div class="card">
@@ -383,6 +410,7 @@ td.num{font-weight:700;color:var(--primary-dark);}
       <div class="chips" id="noteTabs">
         <button class="chip-btn active" data-nt="knowledge" onclick="setNoteTab('knowledge')">📖 孕期知识</button>
         <button class="chip-btn" data-nt="bag" onclick="setNoteTab('bag')">🎒 待产包清单</button>
+        <button class="chip-btn" data-nt="contraction" onclick="setNoteTab('contraction')">🚨 宫缩计时</button>
         <button class="chip-btn" data-nt="diary" onclick="setNoteTab('diary')">✍️ 孕期日记</button>
       </div>
       <div id="noteContent"></div>
@@ -403,7 +431,6 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const pad = n => String(n).padStart(2, '0');
 const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
-// 优化日期解析，固定为当日中午 12点，规避跨时区/夏令时 1 天偏差问题
 const parseD = s => { 
   const [y,m,d] = s.split('-').map(Number); 
   return new Date(y, m-1, d, 12, 0, 0); 
@@ -431,6 +458,47 @@ const CHECKUP_MAP = {
   280:'孕40周：预产期'
 };
 
+/* 本周宝宝水果大小与发育指引 (功能二) */
+const WEEK_TIPS = {
+  4: { fruit: '🌱 罂粟籽', desc: '受精卵成功着床，胚胎开始迅速发育。' },
+  5: { fruit: '🍎 苹果籽', desc: '心脏开始形成，并开始微弱跳动。' },
+  6: { fruit: '🫘 小扁豆', desc: '神经管开始闭合，大脑和脊髓雏形初现。' },
+  7: { fruit: '🫐 蓝莓', desc: '面部五官开始分化，小手小脚的芽包长出来。' },
+  8: { fruit: '🍓 覆盆子', desc: '宝宝开始能够做轻微的自发运动了。' },
+  9: { fruit: '🍇 葡萄', desc: '主要器官已经形成，尾巴逐渐消失。' },
+  10: { fruit: '🍊 金橘', desc: '正式进入胎儿期，手指和脚趾清晰可见。' },
+  11: { fruit: '🫒 无花果', desc: '胎盘基本成型，开始为主体输送营养。' },
+  12: { fruit: '🍋 青柠檬', desc: '神经系统迅速发育，可能会有反射动作。' },
+  13: { fruit: '🫛 豌豆荚', desc: '声带开始发育，肝脏开始分泌胆汁。' },
+  14: { fruit: '🍋 柠檬', desc: '脖子变得更明显，肾脏开始产生尿液。' },
+  15: { fruit: '🍏 苹果', desc: '对光线有了初步感应，皮肤非常薄。' },
+  16: { fruit: '🥑 牛油果', desc: '下肢发育完善，关节可以灵活活动。' },
+  17: { fruit: '🧅 洋葱', desc: '皮下脂肪开始积聚，骨骼逐渐变硬。' },
+  18: { fruit: '🫑 甜椒', desc: '听力开始发育，能听到妈妈的心跳和声音。' },
+  19: { fruit: '🍅 大番茄', desc: '皮肤表面覆盖了一层胎脂，起到保护作用。' },
+  20: { fruit: '🍌 香蕉', desc: '孕中期过半，胎动会越来越明显规律。' },
+  21: { fruit: '🥕 胡萝卜', desc: '消化系统开始吞咽羊水并吸收水分。' },
+  22: { fruit: '🍈 木瓜', desc: '眉毛和眼睑完全长成，指甲清晰可见。' },
+  23: { fruit: '🥭 大芒果', desc: '肺部开始分泌表面活性剂，为呼吸做准备。' },
+  24: { fruit: '🌽 玉米', desc: '味蕾发育完成，大脑细胞飞速增长。' },
+  25: { fruit: '🥦 西兰花', desc: '头发开始长出，毛发颜色初步形成。' },
+  26: { fruit: '🧅 大葱', desc: '眼睛可以睁开闭上，对强光有眨眼反应。' },
+  27: { fruit: '🥬 大白菜', desc: '睡眠周期建立，会做梦也有规律的作息。' },
+  28: { fruit: '🥥 椰子', desc: '进入孕晚期！大脑皮层沟回开始增多。' },
+  29: { fruit: '🎃 南瓜', desc: '体温调节能力发育，皮下脂肪更加丰满。' },
+  30: { fruit: '🥬 卷心菜', desc: '骨髓开始制造红细胞，视力进一步发育。' },
+  31: { fruit: '🌿 芦笋束', desc: '空间变小，胎动会变成舒展和顶包。' },
+  32: { fruit: '🍈 哈密瓜', desc: '指甲完全长出，皮肤变得红润光滑。' },
+  33: { fruit: '🍍 菠萝', desc: '免疫系统逐渐成熟，从母体获得抗体。' },
+  34: { fruit: '🍈 大哈密瓜', desc: '听觉完全成熟，对音乐和声音非常敏感。' },
+  35: { fruit: '🍈 蜜瓜', desc: '肾脏发育完全，肝脏能处理代谢废物。' },
+  36: { fruit: '🥗 生菜', desc: '每周增重加快，为出生做最后冲刺。' },
+  37: { fruit: '🪨 冬瓜', desc: '足月啦！随时准备迎接宝宝的到来。' },
+  38: { fruit: '🍉 小西瓜', desc: '皮下脂肪充足，练习自主呼吸。' },
+  39: { fruit: '🍉 大西瓜', desc: '各项指标成熟，等待发动信号。' },
+  40: { fruit: '👶 甜美天使', desc: '预产期到了，安心期待与宝宝见面！' }
+};
+
 /* ============================================================
    默认数据
 ============================================================ */
@@ -448,7 +516,7 @@ const DEFAULT_STATE = {
       { id:'k1', title:'孕早期（1–13周）注意事项',
         content:'1. 每天补充叶酸 0.4mg，至少到孕 3 个月。\n2. 避免剧烈运动、提重物，注意休息。\n3. 孕吐明显可少食多餐，避免油腻气味。\n4. 不要自行用药，感冒发烧要及时就医。\n5. 11–13⁺⁶ 周做 NT 检查，记得提前预约建档。' },
       { id:'k2', title:'孕中期（14–27周）营养建议',
-        content:'1. 每天保证优质蛋白：鸡蛋、鱼、瘦肉、豆制品。\n2. 补钙 1000mg/天（牛奶 500ml + 钙片按需）。\n3. 补铁：红肉、动物肝脏，每周 1–2 次。\n4. 控制精制糖和水果量，预防妊娠糖尿病。\n5. 20–24 周大排畸，24–28 周糖耐，别错过。' },
+        content:'1. 每天保证优质蛋白：鸡蛋, 鱼, 瘦肉, 豆制品。\n2. 补钙 1000mg/天（牛奶 500ml + 钙片按需）。\n3. 补铁：红肉、动物肝脏，每周 1–2 次。\n4. 控制精制糖和水果量，预防妊娠糖尿病。\n5. 20–24 周大排畸，24–28 周糖耐，别错过。' },
       { id:'k3', title:'孕晚期（28周以后）注意',
         content:'1. 每天数胎动，早中晚各 1 小时，异常及时就医。\n2. 睡姿尽量左侧卧，减轻子宫对血管的压迫。\n3. 注意水肿、血压，警惕妊娠高血压。\n4. 36 周后每周产检，准备好待产包。\n5. 出现规律宫缩、见红、破水，立即去医院。' },
       { id:'k4', title:'如何正确数胎动',
@@ -492,6 +560,7 @@ const DEFAULT_STATE = {
       { id:'b53', group:'其他', text:'出院时穿的衣服', done:false },
       { id:'b54', group:'其他', text:'塑料袋 / 收纳袋', done:false }
     ],
+    contractions: [], // 宫缩计时记录 (功能三)
     diary: []
   }
 };
@@ -512,7 +581,7 @@ function loadState(){
       if(Array.isArray(s.records)) base.records = s.records;
       if(Array.isArray(s.marks))   base.marks   = s.marks;
       if(s.notes){
-        ['knowledge','bag','diary'].forEach(k=>{
+        ['knowledge','bag','contractions','diary'].forEach(k=>{
           if(Array.isArray(s.notes[k])) base.notes[k] = s.notes[k];
         });
       }
@@ -568,6 +637,7 @@ $$('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 ============================================================ */
 function renderHome(){
   const box = $('#homeStatus');
+  const sizeBox = $('#homeSizeCard');
 
   if(!state.profile.lmp){
     box.innerHTML = `
@@ -576,6 +646,7 @@ function renderHome(){
         <p style="font-weight:700;">还没有设置末次月经日期</p>
         <p class="hint">在下方「个人设置」中填写后，即可自动计算孕周、预产期，并生成孕周日历。</p>
       </div>`;
+    sizeBox.innerHTML = '';
   } else {
     const t = today();
     const g = gest(fmt(t));
@@ -607,6 +678,22 @@ function renderHome(){
       <div class="hero-foot">
         末次月经 ${state.profile.lmp} · 已孕 ${Math.max(0, g.days)} 天 / 全程约 ${total} 天
       </div>`;
+
+    /* 渲染本周宝宝大小卡片 (功能二) */
+    if(isBefore || g.weeks < 4){
+      sizeBox.innerHTML = `<div class="size-card"><div class="size-icon">🌱</div><div class="size-body"><div class="size-title">备孕与孕初指引</div><div class="size-desc">宝宝正在准备到来，请按时补充叶酸，保持好心情。</div></div></div>`;
+    } else {
+      const wkKey = Math.min(40, Math.max(4, g.weeks));
+      const info = WEEK_TIPS[wkKey] || { fruit: '👶 聪明宝', desc: '宝宝正在健康成长，每一天都有新变化。' };
+      sizeBox.innerHTML = `
+        <div class="size-card">
+          <div class="size-icon">${info.fruit.split(' ')[0]}</div>
+          <div class="size-body">
+            <div class="size-title">第 ${g.weeks} 周宝宝大小：${info.fruit.split(' ')[1]}</div>
+            <div class="size-desc">${info.desc}</div>
+          </div>
+        </div>`;
+    }
   }
 
   /* 数据概览 */
@@ -688,7 +775,7 @@ function resetAll(){
   if(!confirm('再次确认：所有记录、日记、标注都会被删除。')) return;
   localStorage.removeItem(KEY);
   state = loadState();
-  curChartMetric = state.metrics[0] ? state.metrics[0].id : null;
+  curChartMetric = state.metrics[0].id;
   renderAll();
 }
 
@@ -1067,11 +1154,11 @@ function delMark(){
   state.marks = state.marks.filter(m => m.date !== selectedDate);
   saveState();
   renderCalendar();
-  renderDayDetail(); // 修复Bug：同时刷洗详情区
+  renderDayDetail();
 }
 
 /* ============================================================
-   知识 & 清单 & 日记
+   知识 & 清单 & 宫缩计时器 & 日记
 ============================================================ */
 let curNoteTab = 'knowledge';
 
@@ -1085,6 +1172,7 @@ function renderNotes(){
   const box = $('#noteContent');
   if(curNoteTab === 'knowledge')      box.innerHTML = renderKnowledge();
   else if(curNoteTab === 'bag')       box.innerHTML = renderBag();
+  else if(curNoteTab === 'contraction') box.innerHTML = renderContraction();
   else                                box.innerHTML = renderDiary();
 }
 
@@ -1185,6 +1273,129 @@ function addBagItem(){
   renderNotes();
 }
 
+/* ============================================================
+   宫缩计时器逻辑 (功能三)
+============================================================ */
+let contractionTimerInterval = null;
+
+function renderContraction(){
+  const activeStart = localStorage.getItem('preg_active_contraction');
+  const isActive = !!activeStart;
+  const list = state.notes.contractions || [];
+
+  let html = `
+    <div class="contraction-box">
+      <p class="hint" style="margin-bottom:6px;">🚨 临产宫缩记录仪（5-1-1 原则：规律至每 5 分钟一次、每次持续 1 分钟、持续 1 小时请去医院）</p>
+      <div class="big-timer-btn ${isActive ? 'active' : ''}" onclick="toggleContraction()">
+        <span style="font-size:22px;">${isActive ? '🛑' : '⏱️'}</span>
+        <span>${isActive ? '宫缩结束' : '宫缩开始'}</span>
+      </div>
+      <div class="timer-display" id="contractionLiveTime">00:00</div>
+      <p class="hint" id="contractionStatusHint">${isActive ? '宫缩正在进行中...' : '点击按钮开始记录单次宫缩时长'}</p>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h4 style="font-size:14px;color:var(--primary-dark);">历史宫缩记录（共 ${list.length} 次）</h4>
+      ${list.length ? '<button class="ghost danger" style="padding:4px 10px;font-size:12px;" onclick="clearContractions()">清空记录</button>' : ''}
+    </div>`;
+
+  if(list.length === 0){
+    html += `<p class="empty">还没有宫缩记录，临产时点击上方按钮开始计时</p>`;
+  } else {
+    html += `<div style="overflow-x:auto;"><table>
+      <thead><tr><th>开始时间</th><th>持续时间</th><th>距上次间隔</th><th></th></tr></thead>
+      <tbody>${list.map((c, idx) => `
+        <tr>
+          <td>${c.timeStr}</td>
+          <td class="num">${c.durationStr}</td>
+          <td style="color:var(--muted);">${c.intervalStr || '—'}</td>
+          <td style="text-align:right;"><button class="del-btn" onclick="delContraction('${c.id}')">✕</button></td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // 启动实时计时器渲染
+  if(contractionTimerInterval) clearInterval(contractionTimerInterval);
+  if(isActive){
+    contractionTimerInterval = setInterval(() => {
+      const start = Number(localStorage.getItem('preg_active_contraction'));
+      const sec = Math.floor((Date.now() - start) / 1000);
+      const m = pad(Math.floor(sec / 60));
+      const s = pad(sec % 60);
+      const el = $('#contractionLiveTime');
+      if(el) el.textContent = `${m}:${s}`;
+    }, 1000);
+  }
+
+  return html;
+}
+
+function toggleContraction(){
+  const activeStart = localStorage.getItem('preg_active_contraction');
+  const now = Date.now();
+
+  if(!activeStart){
+    // 开始计时
+    localStorage.setItem('preg_active_contraction', now);
+    renderNotes();
+  } else {
+    // 结束计时并归档
+    const start = Number(activeStart);
+    localStorage.removeItem('preg_active_contraction');
+    if(contractionTimerInterval) clearInterval(contractionTimerInterval);
+
+    const durationSec = Math.round((now - start) / 1000);
+    if(durationSec < 2){
+      alert('持续时间太短，已忽略');
+      renderNotes();
+      return;
+    }
+
+    const dMin = Math.floor(durationSec / 60);
+    const dSec = durationSec % 60;
+    const durationStr = dMin > 0 ? `${dMin}分${dSec}秒` : `${dSec}秒`;
+
+    const dObj = new Date(start);
+    const timeStr = `${pad(dObj.getHours())}:${pad(dObj.getMinutes())}:${pad(dObj.getSeconds())}`;
+
+    // 计算间隔
+    let intervalStr = '';
+    const list = state.notes.contractions;
+    if(list.length > 0){
+      const lastStart = list[0].rawStart;
+      const intervalSec = Math.round((start - lastStart) / 1000);
+      const iMin = Math.floor(intervalSec / 60);
+      const iSec = intervalSec % 60;
+      intervalStr = iMin > 0 ? `${iMin}分${iSec}秒` : `${iSec}秒`;
+    }
+
+    list.unshift({
+      id: uid(),
+      rawStart: start,
+      timeStr,
+      durationStr,
+      intervalStr
+    });
+
+    saveState();
+    renderNotes();
+  }
+}
+
+function delContraction(id){
+  state.notes.contractions = state.notes.contractions.filter(c => c.id !== id);
+  saveState();
+  renderNotes();
+}
+
+function clearContractions(){
+  if(!confirm('确定清空所有宫缩记录吗？')) return;
+  state.notes.contractions = [];
+  localStorage.removeItem('preg_active_contraction');
+  saveState();
+  renderNotes();
+}
+
 /* ---------- 孕期日记 ---------- */
 function renderDiary(){
   const moods = ['😊 开心','🥰 幸福','😴 疲惫','🤢 不适','😟 担心','😤 烦躁','🤔 平静'];
@@ -1274,7 +1485,6 @@ function init(){
           const newWorker = reg.installing;
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // 发现新版本时发送激活指令并静默刷新
               newWorker.postMessage({ action: 'skipWaiting' });
             }
           });
